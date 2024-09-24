@@ -15,13 +15,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-//                 git branch: 'main', url: 'https://github.com/mekaizen/sdlc-test.git'
+                git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
 
-           // Use Jenkins' built-in checkout step for better Git integration
-                          checkout([$class: 'GitSCM',
-                              branches: [[name: '*/main']],
-                              userRemoteConfigs: [[url: 'https://github.com/mekaizen/sdlc-test.git']]
-                          ])
 
             }
         }
