@@ -44,7 +44,7 @@ pipeline {
             always {
                 script {
                     sh '''
-                    docker container prune -f
+                   // docker container prune -f
                     kill $(ps aux | grep 'sdlc-test.jar' | awk '{print $2}')
                     '''
                 }
