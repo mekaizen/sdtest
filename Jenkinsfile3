@@ -28,6 +28,24 @@ pipeline {
                     }
                 }
 
+ post {
+        success {
+            echo 'Build, test, and ZAP scan passed'
+        }
+        failure {
+            echo 'Build failed'
+        }
+        always {
+            script {
+                sh '''
+                docker container prune -f
+                kill $(ps aux | grep 'sdlc-test.jar' | awk '{print $2}')
+                '''
+            }
+        }
+    }
+
+
 
     }
 }
