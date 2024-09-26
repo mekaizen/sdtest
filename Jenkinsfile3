@@ -82,7 +82,7 @@ stage('Start Application') {
            stage('Check Application Logs') {
                     steps {
                         script {
-                            # Output the application logs
+                           // Output the application logs
                             sh 'cat app.log'
                         }
                     }
