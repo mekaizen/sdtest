@@ -106,7 +106,7 @@ stage('Post ZAP Scan Actions') {
             steps {
                // Archive the ZAP report
                 archiveArtifacts artifacts: 'zap-report.html', allowEmptyArchive: true
-                #Optionally, you can use warnings plugins or parse the report for vulnerabilities.
+               //Optionally, you can use warnings plugins or parse the report for vulnerabilities.
             }
         }
 
