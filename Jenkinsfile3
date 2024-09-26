@@ -45,7 +45,15 @@ pipeline {
                 script {
                     sh '''
                   # docker container prune -f
-                    kill $(ps aux | grep 'sdlc-test.jar' | awk '{print $2}')
+                    # Check if the process exists before killing
+                       pid=$(ps aux | grep 'sdlc-test.jar' | grep -v 'grep' | awk '{print $2}')
+                       if [ -n "$pid" ]; then
+                           kill $pid
+                       else
+                           echo "Process not found, skipping kill."
+                       fi
+
+                #    kill $(ps aux | grep 'sdlc-test.jar' | awk '{print $2}')
                     '''
                 }
             }
