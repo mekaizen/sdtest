@@ -99,7 +99,7 @@ stage('ZAP Security Scan') {
                     }
                 }
             }
-        }
+
 
 
 stage('Post ZAP Scan Actions') {
