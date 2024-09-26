@@ -52,11 +52,11 @@ pipeline {
 stage('Start Application') {
             steps {
                 script {
-                    # Start the application for testing locally on port 8081
+                    // Start the application for testing locally on port 8081
                 sh '''
                                 nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8084 > app.log 2>&1 &
                             '''
-                            # Increase sleep time to ensure application fully starts
+                            // Increase sleep time to ensure application fully starts
                             sleep 10
                 }
             }
@@ -67,7 +67,7 @@ stage('Start Application') {
   stage('Verify Application Running') {
             steps {
                 script {
-                    # Check if the application is running and accessible on port 8081
+                    // Check if the application is running and accessible on port 8081
                     sh '''
                         curl -I http://localhost:8084 || {
                             echo "Application is not running!"
@@ -92,9 +92,9 @@ stage('Start Application') {
 stage('ZAP Security Scan') {
             steps {
                 script {
-                    # Run ZAP as a Docker container
+                    //Run ZAP as a Docker container
                     docker.image('zaproxy/zap-stable').inside {
-                        # Replace 'http://your-app-url' with the actual URL of your running application
+                        // Replace 'http://your-app-url' with the actual URL of your running application
                         sh "zap-baseline.py -t http://localhost:8084 -r zap-report.html"
                     }
                 }
@@ -104,7 +104,7 @@ stage('ZAP Security Scan') {
 
 stage('Post ZAP Scan Actions') {
             steps {
-                # Archive the ZAP report
+               // Archive the ZAP report
                 archiveArtifacts artifacts: 'zap-report.html', allowEmptyArchive: true
                 #Optionally, you can use warnings plugins or parse the report for vulnerabilities.
             }
