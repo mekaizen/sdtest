@@ -93,9 +93,9 @@ stage('ZAP Security Scan') {
             steps {
                 script {
                     //Run ZAP as a Docker container
-                    docker.image('zaproxy/zap-stable').inside {
-                        // Replace 'http://your-app-url' with the actual URL of your running application
-                        sh "zap-baseline.py -t http://localhost:8084 -r zap-report.html"
+                 sh '''
+                   docker run --network host zaproxy/zap-stable zap-baseline.py -t http://localhost:8084 -r zap-report.html
+                    '''
                     }
                 }
             }
