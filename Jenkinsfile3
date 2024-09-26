@@ -16,6 +16,21 @@ pipeline {
           }
 
     stages {
+
+
+     stage('Install Docker CLI') {
+                steps {
+                    script {
+                        // Installing Docker CLI inside the Jenkins agent container
+                        sh '''
+                            apk update && \
+                            apk add docker-cli
+                        '''
+                    }
+                }
+            }
+
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
