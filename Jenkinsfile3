@@ -37,13 +37,13 @@ pipeline {
   stage('SAST Scan') {
             steps {
                 sh '''
-                            mvn -Dmaven.test.failure.ignore verify org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
 
                    #  mvn -Dmaven.test.failure.ignore verify sonar:sonar \
-                     -Dsonar.login=$SONAR_TOKEN \
-                     -Dsonar.projectKey=sdlc-test \
-                     -Dsonar.host.url=http://172.18.0.3:9000/ \
-                     -Dsonar.ws.timeout=180
+                 mvn -Dmaven.test.failure.ignore verify org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+                           -Dsonar.login=$SONAR_TOKEN \
+                           -Dsonar.projectKey=sdlc-test \
+                           -Dsonar.host.url=http://172.18.0.3:9000 \
+                           -Dsonar.ws.timeout=180
                 '''
             }
         }
