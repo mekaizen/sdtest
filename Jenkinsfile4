@@ -76,6 +76,7 @@ pipeline {
                     sh '''
                         curl -I http://app:8084 || {
                             echo "Application is not running!"
+                       docker logs app
                        exit 1
                         }
                     '''
