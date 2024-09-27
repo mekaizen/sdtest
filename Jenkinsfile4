@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-         //   image 'docker:latest' // Using Docker to manage containers
+            image 'docker:latest' // Using Docker to manage containers
             image 'ubuntu'
             args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
