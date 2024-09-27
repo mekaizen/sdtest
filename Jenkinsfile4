@@ -12,25 +12,17 @@ pipeline {
 
     stages {
 
-        stages {
-            stage('Install Docker CLI and curl') {
-                steps {
-                    // Install Docker CLI and curl in the Ubuntu agent container
-                    sh '''
+        stage('Install Docker CLI and curl') {
+            steps {
+                // Install Docker CLI and curl in the Ubuntu agent container
+                sh '''
                     apt-get update
                     apt-get install -y docker.io curl
                     systemctl enable docker
                     systemctl start docker
                 '''
-                }
             }
-
-
-
-
-
-
-
+        }
 
 
         stage('Checkout') {
