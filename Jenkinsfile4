@@ -43,7 +43,7 @@ pipeline {
         stage('Install curl') {
             steps {
                 // Install curl on the fly
-                sh 'apt-get update && apt-get install -y curl'
+                sh 'apt update && apt install -y curl'
             }
         }
 
