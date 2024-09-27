@@ -74,7 +74,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        curl -I http://app:8084 || {
+                        curl -I http://localhost:8084 || {
                             echo "Application is not running!"
                        docker logs app
                        exit 1
@@ -89,7 +89,7 @@ pipeline {
                 script {
                     // Run ZAP security scan against the running application
                     sh '''
-                        docker run --network jenkins-sonar-network zaproxy/zap-stable zap-baseline.py -t http://app:8084 -r zap-report.html
+                        docker run --network jenkins-sonar-network zaproxy/zap-stable zap-baseline.py -t http://localhos:8084 -r zap-report.html
 
                     '''
                 }
