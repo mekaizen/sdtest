@@ -1,7 +1,6 @@
 pipeline {
     agent {
         docker {
-            image 'docker:latest' // Using Docker to manage containers
             image 'ubuntu'
             args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
@@ -12,6 +11,28 @@ pipeline {
     }
 
     stages {
+
+        stages {
+            stage('Install Docker CLI and curl') {
+                steps {
+                    // Install Docker CLI and curl in the Ubuntu agent container
+                    sh '''
+                    apt-get update
+                    apt-get install -y docker.io curl
+                    systemctl enable docker
+                    systemctl start docker
+                '''
+                }
+            }
+
+
+
+
+
+
+
+
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
