@@ -46,9 +46,8 @@ pipeline {
                     // Build and run your application from your existing Dockerfile
                     sh '''
                         docker build -t doc18/sdlc-app .
-                   
                         docker run --network jenkins-sonar-network -d --name app -p 8084:8084 doc18/sdlc-app
-                        
+
                         sleep 20
                     '''
                 }
@@ -89,7 +88,8 @@ pipeline {
                 script {
                     // Run ZAP security scan against the running application
                     sh '''
-                        docker run --network host zaproxy/zap-stable zap-baseline.py -t http://localhost:8084 -r zap-report.html
+                        docker run --network jenkins-sonar-network zaproxy/zap-stable zap-baseline.py -t http://app:8084 -r zap-report.html
+
                     '''
                 }
             }
