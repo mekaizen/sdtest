@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
          //   image 'docker:latest' // Using Docker to manage containers
-            image 'alpine:latest'
+            image 'ubuntu:latest'
             args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
@@ -44,7 +44,7 @@ pipeline {
         stage('Install curl') {
             steps {
                 // Install curl on the fly
-                sh 'apk update && apk add curl'
+                sh 'apt-get update && apt-get install -y curl'
             }
         }
 
