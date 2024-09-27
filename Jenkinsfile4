@@ -47,7 +47,16 @@ pipeline {
                     sh '''
                         docker build -t doc18/sdlc-app .
                         docker run -d --name app -p 8084:8084 doc18/sdlc-app
+                        sleep 20
                     '''
+                }
+            }
+        }
+
+        stage('Check Application Logs') {
+            steps {
+                script {
+                    sh 'docker logs app'
                 }
             }
         }
@@ -66,7 +75,7 @@ pipeline {
                     sh '''
                         curl -I http://localhost:8084 || {
                             echo "Application is not running!"
-                       
+                       exit 1
                         }
                     '''
                 }
