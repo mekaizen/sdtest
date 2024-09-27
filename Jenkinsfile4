@@ -18,8 +18,6 @@ pipeline {
                 sh '''
                     apt-get update
                     apt-get install -y docker.io curl
-                    systemctl enable docker
-                    systemctl start docker
                 '''
             }
         }
