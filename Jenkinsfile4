@@ -33,12 +33,20 @@ pipeline {
                 script {
                     // Build and run your application from your existing Dockerfile
                     sh '''
-                        docker build -t your-dockerhub-username/sdlc-app .
-                        docker run -d --name app -p 8084:8084 your-dockerhub-username/sdlc-app
+                        docker build -t doc18/sdlc-app .
+                        docker run -d --name app -p 8084:8084 doc18/sdlc-app
                     '''
                 }
             }
         }
+
+        stage('Install curl') {
+            steps {
+                // Install curl on the fly
+                sh 'apt-get update && apt-get install -y curl'
+            }
+        }
+
 
         stage('Verify Application Running') {
             steps {
