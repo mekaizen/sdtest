@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:20.10.7'  // Docker-in-Docker image
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
@@ -32,11 +37,7 @@ pipeline {
             steps {
                 script {
                     // Use Maven Docker image to build the project and run tests
-                    docker.image(MAVEN_IMAGE).inside('--network jenkins-sonar-network') {
-                        sh """
-                        mvn clean install
-                        """
-                    }
+                    sh 'docker run --rm --network jenkins-sonar-network -v $PWD:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install'
                 }
             }
         }
@@ -45,15 +46,7 @@ pipeline {
             steps {
                 script {
                     // Run SonarQube analysis using Maven inside a Docker container
-                    docker.image(MAVEN_IMAGE).inside('--network jenkins-sonar-network') {
-                        sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=sdlc-app \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=http://172.18.0.3:9000 \
-                        -Dsonar.login=${SONAR_TOKEN}
-                        """
-                    }
+                    sh 'docker run --rm --network jenkins-sonar-network -v $PWD:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}'
                 }
             }
         }
@@ -62,11 +55,7 @@ pipeline {
             steps {
                 script {
                     // Use the ZAP Docker container to run the security scan
-                    docker.image(ZAP_IMAGE).inside('--network jenkins-sonar-network') {
-                        sh """
-                        zap-baseline.py -t http://app:8084 -r zap_report.html
-                        """
-                    }
+                    sh 'docker run --rm --network jenkins-sonar-network -v $PWD:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html'
                 }
             }
         }
