@@ -42,7 +42,7 @@ pipeline {
                         -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
                         -w /usr/src/app \
                         ${MAVEN_IMAGE} mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
-                        -Dsonar.projectKey=sdlc-app \
+                        -Dsonar.projectKey=sdlc-test \
                         -Dsonar.sources=src/main/java \
                         -Dsonar.tests=src/test/java \
                         -Dsonar.exclusions=**/target/**,**/*.jar \
