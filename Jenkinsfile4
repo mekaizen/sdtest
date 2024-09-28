@@ -21,15 +21,20 @@ pipeline {
             }
         }
 
-        stage('Run Maven Build') {
+
+        stage('Build with Maven in Docker') {
             steps {
-                script {
-                    sh 'cp -r ${WORKSPACE} /tmp/maven-workspace'
-                    sh "docker run --rm --network jenkins-sonar-network -v /tmp/maven-workspace:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
-                    sh "docker run --rm --network jenkins-sonar-network -v /tmp/maven-workspace:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
-                }
+                // Run Maven build inside Docker
+                sh """
+                    docker run --rm --network jenkins-sonar-network \
+                    -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
+                    -w /usr/src/app \
+                    maven:3.9.9-eclipse-temurin-21 mvn clean install
+                """
             }
         }
+
+
 
         stage('SonarQube Analysis') {
             steps {
