@@ -17,17 +17,18 @@ pipeline {
             }
         }
 
+
         stage('Run Maven Build') {
             steps {
                 script {
-                    // Directly reference the Jenkins workspace using env.WORKSPACE
-                    sh "echo 'Jenkins Workspace: ${env.WORKSPACE}'"
+                    // Copy workspace to a temporary directory
+                    sh 'cp -r ${WORKSPACE} /tmp/maven-workspace'
 
                     // Verify the POM file exists inside the Docker container
-                    sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
+                    sh "docker run --rm --network jenkins-sonar-network -v /tmp/maven-workspace:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
 
                     // Run the Maven build with the correct workspace mapping
-                    sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
+                    sh "docker run --rm --network jenkins-sonar-network -v /tmp/maven-workspace:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
                 }
             }
         }
