@@ -62,7 +62,7 @@ pipeline {
                 script {
                     // Start the application for testing locally on port 8081
                     sh '''
-                                nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8084 > app.log 2>&1 &
+                                nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8066 > app.log 2>&1 &
                             '''
                     // Increase sleep time to ensure application fully starts
                     sleep 10
@@ -77,7 +77,7 @@ pipeline {
                 script {
                     // Check if the application is running and accessible on port 8081
                     sh '''
-                        curl -I http://localhost:8084 || {
+                        curl -I http://localhost:8066 || {
                             echo "Application is not running!"
                             exit 1
                         }
