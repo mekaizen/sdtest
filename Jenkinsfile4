@@ -18,6 +18,13 @@ pipeline {
             }
         }
 
+        stage('Set Permissions') {
+            steps {
+                // Set appropriate permissions for the files
+                sh 'chmod -R 777 /var/jenkins_home/workspace/sdlc-test1'
+            }
+        }
+
         stage('Build and Run App') {
             steps {
                 script {
