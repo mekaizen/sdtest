@@ -50,7 +50,7 @@ pipeline {
             -Dsonar.sources=src/main/java \
             -Dsonar.tests=src/test/java \
             -Dsonar.exclusions=**/target/** \
-            -Dsonar.host.url=http://172.18.0.3:9000 \
+            -Dsonar.host.url=http://172.18.0.5:9000 \
             -Dsonar.login=${SONAR_TOKEN}
             """
 
