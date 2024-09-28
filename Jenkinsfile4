@@ -21,7 +21,6 @@ pipeline {
             }
         }
 
-
         stage('Build with Maven in Docker') {
             steps {
                 // Run Maven build inside Docker
@@ -29,31 +28,27 @@ pipeline {
                     docker run --rm --network jenkins-sonar-network \
                     -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
                     -w /usr/src/app \
-                    maven:3.9.9-eclipse-temurin-21 mvn clean install
+                    ${MAVEN_IMAGE} mvn clean install
                 """
             }
         }
 
-
-
         stage('SonarQube Analysis') {
             steps {
                 script {
-                  //  sh "docker run --rm --network jenkins-sonar-network -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.5:9000 -Dsonar.login=${SONAR_TOKEN}"
-
+                    // Run SonarQube analysis
                     sh """
-            docker run --rm --network jenkins-sonar-network \
-            -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
-            -w /usr/src/app \
-            ${MAVEN_IMAGE} mvn sonar:sonar \
-            -Dsonar.projectKey=sdlc-app \
-            -Dsonar.sources=src/main/java \
-            -Dsonar.tests=src/test/java \
-            -Dsonar.exclusions=**/target/** \
-            -Dsonar.host.url=http://172.18.0.5:9000 \
-            -Dsonar.login=${SONAR_TOKEN}
-            """
-
+                        docker run --rm --network jenkins-sonar-network \
+                        -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
+                        -w /usr/src/app \
+                        ${MAVEN_IMAGE} mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+                        -Dsonar.projectKey=sdlc-app \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.tests=src/test/java \
+                        -Dsonar.exclusions=**/target/**,**/*.jar \
+                        -Dsonar.host.url=http://172.18.0.5:9000 \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
@@ -61,7 +56,11 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
-                    sh "docker run --rm --network jenkins-sonar-network -v /home/cyber/Documents/practice/projects/sdtest:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html"
+                    sh """
+                        docker run --rm --network jenkins-sonar-network \
+                        -v /home/cyber/Documents/practice/projects/sdtest:/zap/wrk \
+                        ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html
+                    """
                 }
             }
         }
@@ -74,4 +73,3 @@ pipeline {
         }
     }
 }
-
