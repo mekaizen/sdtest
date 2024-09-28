@@ -59,7 +59,7 @@ pipeline {
                     sh """
                         docker run --rm --network jenkins-sonar-network \
                         -v /home/cyber/Documents/practice/projects/sdtest:/zap/wrk \
-                        ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html
+                        ${ZAP_IMAGE} zap-baseline.py -t http://172.18.0.4:8084 -r zap_report.html
                     """
                 }
             }
