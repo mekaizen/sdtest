@@ -46,6 +46,21 @@ pipeline {
             }
         }
 
+        stage('Run Maven Build') {
+            steps {
+                script {
+                    // Dynamically capture the current Jenkins workspace path using `pwd`
+                    def workspace = pwd()
+
+                    // Verify the POM file exists inside the Docker container
+                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app maven:3.9.9-eclipse-temurin-21 ls -la /usr/src/app"
+
+                    // Run the Maven build with the correct workspace mapping
+                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app maven:3.9.9-eclipse-temurin-21 mvn clean install"
+                }
+            }
+        }
+
         stage('SonarQube Analysis') {
             steps {
                 script {
