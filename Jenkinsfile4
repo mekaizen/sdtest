@@ -39,7 +39,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    sh "docker run --rm --network jenkins-sonar-network -v /home/cyber/Documents/practice/projects/sdtest}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    sh "docker run --rm --network jenkins-sonar-network -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
