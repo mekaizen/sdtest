@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
-        APP_IMAGE = 'doc18/sdlc-app'  // Your application Docker image
-        MAVEN_IMAGE = 'maven:3.9.9-eclipse-temurin-21'  // Maven with Java 21 image
-        ZAP_IMAGE = 'zaproxy/zap-stable'  // OWASP ZAP Docker image for security testing
+        APP_IMAGE = 'doc18/sdlc-app'
+        MAVEN_IMAGE = 'maven:3.9.9-eclipse-temurin-21'
+        ZAP_IMAGE = 'zaproxy/zap-stable'
     }
 
     stages {
@@ -13,36 +13,7 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
                 // Verify the contents of the cloned repo
-                sh 'ls -la /var/jenkins_home/workspace/sdlc-test1'
-            }
-        }
-
-        stage('Set Permissions') {
-            steps {
-                // Set appropriate permissions for the files
-                sh 'chmod -R 777 /var/jenkins_home/workspace/sdlc-test1'
-            }
-        }
-
-        stage('Build and Run App') {
-            steps {
-                script {
-                    // Build and run the app Docker image
-                    sh 'docker build -t ${APP_IMAGE} .'
-                    sh 'docker run --network jenkins-sonar-network -d --name app -p 8084:8084 ${APP_IMAGE}'
-                }
-            }
-        }
-
-        stage('Run Maven Build') {
-            steps {
-                script {
-                    // Verify that the POM file exists inside the Docker container
-                    sh 'docker run --rm --network jenkins-sonar-network -v /var/jenkins_home/workspace/sdlc-test1:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app'
-
-                    // Run the Maven build with Java 21
-                    sh 'docker run --rm --network jenkins-sonar-network -v /var/jenkins_home/workspace/sdlc-test1:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install'
-                }
+                sh 'ls -la'
             }
         }
 
@@ -53,10 +24,10 @@ pipeline {
                     def workspace = pwd()
 
                     // Verify the POM file exists inside the Docker container
-                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app maven:3.9.9-eclipse-temurin-21 ls -la /usr/src/app"
+                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
 
                     // Run the Maven build with the correct workspace mapping
-                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app maven:3.9.9-eclipse-temurin-21 mvn clean install"
+                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
                 }
             }
         }
@@ -64,8 +35,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Run SonarQube analysis using Maven inside a Docker container
-                    sh 'docker run --rm --network jenkins-sonar-network -v /var/jenkins_home/workspace/sdlc-test1:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}'
+                    def workspace = pwd()
+                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
@@ -73,8 +44,8 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
-                    // Use the ZAP Docker container to run the security scan
-                    sh 'docker run --rm --network jenkins-sonar-network -v /var/jenkins_home/workspace/sdlc-test1:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html'
+                    def workspace = pwd()
+                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html"
                 }
             }
         }
