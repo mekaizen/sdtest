@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'ubuntu'
+            image 'docker:20.10.8'
             args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
@@ -11,16 +11,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Install Docker CLI and curl') {
-            steps {
-                // Install Docker CLI and curl in the Ubuntu agent container
-                sh '''
-                    apt-get update
-                    apt-get install -y docker.io curl
-                '''
-            }
-        }
 
 
         stage('Checkout') {
@@ -62,12 +52,6 @@ pipeline {
             }
         }
 
-        stage('Install curl') {
-            steps {
-                // Install curl on the fly
-                sh 'apt-get update && apt-get install -y curl'
-            }
-        }
 
 
         stage('Verify Application Running') {
@@ -89,7 +73,7 @@ pipeline {
                 script {
                     // Run ZAP security scan against the running application
                     sh '''
-                        docker run --network jenkins-sonar-network zaproxy/zap-stable zap-baseline.py -t http://localhos:8084 -r zap-report.html
+                        docker run --network jenkins-sonar-network zaproxy/zap-stable zap-baseline.py -t http://localhost:8084 -r zap-report.html
 
                     '''
                 }
