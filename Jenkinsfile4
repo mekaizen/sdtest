@@ -20,14 +20,14 @@ pipeline {
         stage('Run Maven Build') {
             steps {
                 script {
-                    // Use Jenkins' built-in WORKSPACE variable
-                    def workspace = "${env.WORKSPACE}"
+                    // Directly reference the Jenkins workspace using env.WORKSPACE
+                    sh "echo 'Jenkins Workspace: ${env.WORKSPACE}'"
 
                     // Verify the POM file exists inside the Docker container
-                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
+                    sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
 
                     // Run the Maven build with the correct workspace mapping
-                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
+                    sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
                 }
             }
         }
@@ -35,8 +35,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    def workspace = "${env.WORKSPACE}"
-                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    // Use the Jenkins workspace dynamically
+                    sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
@@ -44,8 +44,8 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
-                    def workspace = "${env.WORKSPACE}"
-                    sh "docker run --rm --network jenkins-sonar-network -v ${workspace}:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html"
+                    // Use the Jenkins workspace dynamically
+                    sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html"
                 }
             }
         }
