@@ -2,5 +2,5 @@ projectKey=sdlc-test
 serverUrl=http://172.18.0.5:9000
 serverVersion=10.6.0.92116
 dashboardUrl=http://172.18.0.5:9000/dashboard?id=sdlc-test
-ceTaskId=16ae8241-e4d1-4e36-b824-4f07b64b8fab
-ceTaskUrl=http://172.18.0.5:9000/api/ce/task?id=16ae8241-e4d1-4e36-b824-4f07b64b8fab
+ceTaskId=5a89a28d-4e37-428f-bc57-08d36454e933
+ceTaskUrl=http://172.18.0.5:9000/api/ce/task?id=5a89a28d-4e37-428f-bc57-08d36454e933
