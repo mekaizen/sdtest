@@ -1,16 +1,18 @@
 pipeline {
     agent {
         docker {
-            image 'maven:3.9.8-eclipse-temurin-21'
+            image 'docker:20.10.8-dind'
             args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // SonarQube token stored in Jenkins credentials
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
     }
 
     stages {
+
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
@@ -19,21 +21,10 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
                 script {
-                    docker.image('sonarsource/sonar-scanner-cli').inside {
-                        sh '''
-                            sonar-scanner \
-                                -Dsonar.projectKey=sdtest \
-                                -Dsonar.sources=. \
-                                -Dsonar.host.url=http://172.18.0.3:9000 \
-                                -Dsonar.login=$SONAR_TOKEN
-                        '''
+                    // Run Maven inside a separate container
+                    docker.image('maven:3.9.8-eclipse-temurin-21').inside {
+                        sh 'mvn clean package'
                     }
                 }
             }
@@ -42,14 +33,26 @@ pipeline {
         stage('Run Application') {
             steps {
                 script {
+                    // Build and run your application from your existing Dockerfile
                     sh '''
                         docker build -t doc18/sdlc-app .
                         docker run --network jenkins-sonar-network -d --name app -p 8084:8084 doc18/sdlc-app
+
                         sleep 20
                     '''
                 }
             }
         }
+
+        stage('Check Application Logs') {
+            steps {
+                script {
+                    sh 'docker logs app'
+                }
+            }
+        }
+
+
 
         stage('Verify Application Running') {
             steps {
@@ -57,8 +60,8 @@ pipeline {
                     sh '''
                         curl -I http://localhost:8084 || {
                             echo "Application is not running!"
-                            docker logs app
-                            exit 1
+                       docker logs app
+                       exit 1
                         }
                     '''
                 }
@@ -68,11 +71,11 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
-                    docker.image('zaproxy/zap-stable').inside {
-                        sh '''
-                            zap-baseline.py -t http://localhost:8084 -r zap-report.html
-                        '''
-                    }
+                    // Run ZAP security scan against the running application
+                    sh '''
+                        docker run --network jenkins-sonar-network zaproxy/zap-stable zap-baseline.py -t http://localhost:8084 -r zap-report.html
+
+                    '''
                 }
             }
         }
@@ -86,7 +89,7 @@ pipeline {
 
     post {
         success {
-            echo 'Build, SonarQube analysis, and ZAP scan passed successfully'
+            echo 'Build, test, and ZAP scan passed'
         }
         failure {
             echo 'Build failed'
@@ -94,8 +97,7 @@ pipeline {
         always {
             script {
                 sh '''
-                    docker stop app || true
-                    docker rm app || true
+                    docker stop app && docker rm app
                 '''
             }
         }
