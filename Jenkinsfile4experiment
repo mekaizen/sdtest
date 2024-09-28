@@ -1,31 +1,33 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:20.10' // Use a Docker image with Docker CLI
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Pass Docker socket
-        }
-    }
+    agent any
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
-        APP_IMAGE = 'doc18/sdlc-app'
-        MAVEN_IMAGE = 'maven:3.9.9-eclipse-temurin-21'
-        ZAP_IMAGE = 'zaproxy/zap-stable'
+        APP_IMAGE = 'doc18/sdlc-app'  // Your application Docker image
+        MAVEN_IMAGE = 'maven:3.9.9-eclipse-temurin-21'  // Maven with Java 21 image
+        ZAP_IMAGE = 'zaproxy/zap-stable'  // OWASP ZAP Docker image for security testing
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
+                // Verify the contents of the cloned repo
                 sh 'ls -la'
             }
         }
 
+
         stage('Run Maven Build') {
             steps {
                 script {
+                    // Copy workspace to a temporary directory
                     sh 'cp -r ${WORKSPACE} /tmp/maven-workspace'
+
+                    // Verify the POM file exists inside the Docker container
                     sh "docker run --rm --network jenkins-sonar-network -v /tmp/maven-workspace:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} ls -la /usr/src/app"
+
+                    // Run the Maven build with the correct workspace mapping
                     sh "docker run --rm --network jenkins-sonar-network -v /tmp/maven-workspace:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install"
                 }
             }
@@ -34,6 +36,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
+                    // Use the Jenkins workspace dynamically
                     sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn sonar:sonar -Dsonar.projectKey=sdlc-app -Dsonar.sources=. -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
@@ -42,6 +45,7 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
+                    // Use the Jenkins workspace dynamically
                     sh "docker run --rm --network jenkins-sonar-network -v ${env.WORKSPACE}:/zap/wrk ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html"
                 }
             }
@@ -50,9 +54,9 @@ pipeline {
 
     post {
         always {
+            // Cleanup: Stop and remove the app container after execution
             sh 'docker stop app || true && docker rm app || true'
             archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
         }
     }
 }
-
