@@ -1,66 +1,45 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.8-eclipse-temurin-21'
-            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // SonarQube token stored in Jenkins credentials
+        // SonarQube token (stored in Jenkins credentials)
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
+        DOCKER_IMAGE = 'doc18/mtapp'  // Your application Docker image
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
+                // Clone the GitHub repository
+                git url: 'https://github.com/mekaizen/sdtest.git'
             }
         }
 
-        stage('Build with Maven') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('SonarQube Analysis') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    docker.image('sonarsource/sonar-scanner-cli').inside {
-                        sh '''
-                            sonar-scanner \
-                                -Dsonar.projectKey=sdtest \
-                                -Dsonar.sources=. \
-                                -Dsonar.host.url=http://172.18.0.3:9000 \
-                                -Dsonar.login=$SONAR_TOKEN
-                        '''
+                    // Build the Docker image for the app
+                    sh 'docker build -t ${DOCKER_IMAGE} .'
+                }
+            }
+        }
+
+        stage('Run SonarQube Analysis') {
+            steps {
+                script {
+                    // Run the application in Docker
+                    sh 'docker run --network jenkins-sonar-network -d --name app -p 8084:8084 ${DOCKER_IMAGE}'
+
+                    // Run SonarQube Scanner inside Docker
+                    docker.image('sonarsource/sonar-scanner-cli').inside('--network jenkins-sonar-network') {
+                        sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=sdlc-app \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://172.18.0.3:9000 \
+                        -Dsonar.login=${SONAR_TOKEN}
+                        """
                     }
-                }
-            }
-        }
-
-        stage('Run Application') {
-            steps {
-                script {
-                    sh '''
-                        docker build -t doc18/sdlc-app .
-                        docker run --network jenkins-sonar-network -d --name app -p 8084:8084 doc18/sdlc-app
-                        sleep 20
-                    '''
-                }
-            }
-        }
-
-        stage('Verify Application Running') {
-            steps {
-                script {
-                    sh '''
-                        curl -I http://localhost:8084 || {
-                            echo "Application is not running!"
-                            docker logs app
-                            exit 1
-                        }
-                    '''
                 }
             }
         }
@@ -68,36 +47,22 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
-                    docker.image('zaproxy/zap-stable').inside {
-                        sh '''
-                            zap-baseline.py -t http://localhost:8084 -r zap-report.html
-                        '''
+                    // Start the ZAP Docker container
+                    docker.image('owasp/zap2docker-stable').inside('--network jenkins-sonar-network') {
+                        sh """
+                        zap-baseline.py -t http://app:8084 -r zap_report.html
+                        """
                     }
                 }
-            }
-        }
-
-        stage('Post ZAP Scan Actions') {
-            steps {
-                archiveArtifacts artifacts: 'zap-report.html', allowEmptyArchive: true
             }
         }
     }
 
     post {
-        success {
-            echo 'Build, SonarQube analysis, and ZAP scan passed successfully'
-        }
-        failure {
-            echo 'Build failed'
-        }
         always {
-            script {
-                sh '''
-                    docker stop app || true
-                    docker rm app || true
-                '''
-            }
+            // Cleanup: Remove Docker containers after execution
+            sh 'docker stop app || true && docker rm app || true'
+            archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
         }
     }
 }
