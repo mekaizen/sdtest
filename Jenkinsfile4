@@ -2,40 +2,52 @@ pipeline {
     agent any
 
     environment {
-        // SonarQube token (stored in Jenkins credentials)
         SONAR_TOKEN = credentials('SONAR_TOKEN')
-        DOCKER_IMAGE = 'doc18/mtapp'  // Your application Docker image
+        APP_IMAGE = 'doc18/sdlc-app'  // Your application Docker image
+        MAVEN_IMAGE = 'maven:3.8.4-openjdk-11'  // Maven Docker image for building and SonarQube analysis
+        ZAP_IMAGE = 'zaproxy/zap-stable'  // OWASP ZAP Docker image for security testing
     }
 
     stages {
         stage('Checkout') {
             steps {
                 // Clone the GitHub repository
-               // git url: 'https://github.com/mekaizen/sdtest.git'
-                git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
-
+                git url: 'https://github.com/mekaizen/sdtest.git'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build and Run App') {
             steps {
                 script {
-                    // Build the Docker image for the app
-                    sh 'docker build -t ${DOCKER_IMAGE} .'
+                    // Build the app Docker image
+                    sh 'docker build -t ${APP_IMAGE} .'
+
+                    // Run the application in Docker
+                    sh 'docker run --network jenkins-sonar-network -d --name app -p 8084:8084 ${APP_IMAGE}'
                 }
             }
         }
 
-        stage('Run SonarQube Analysis') {
+        stage('Run Maven Build') {
             steps {
                 script {
-                    // Run the application in Docker
-                    sh 'docker run --network jenkins-sonar-network -d --name app -p 8084:8084 ${DOCKER_IMAGE}'
-
-                    // Run SonarQube Scanner inside Docker
-                    docker.image('sonarsource/sonar-scanner-cli').inside('--network jenkins-sonar-network') {
+                    // Use Maven Docker image to build the project and run tests
+                    docker.image(MAVEN_IMAGE).inside('--network jenkins-sonar-network') {
                         sh """
-                        sonar-scanner \
+                        mvn clean install
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Run SonarQube analysis using Maven inside a Docker container
+                    docker.image(MAVEN_IMAGE).inside('--network jenkins-sonar-network') {
+                        sh """
+                        mvn sonar:sonar \
                         -Dsonar.projectKey=sdlc-app \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=http://172.18.0.3:9000 \
@@ -49,8 +61,8 @@ pipeline {
         stage('ZAP Security Scan') {
             steps {
                 script {
-                    // Start the ZAP Docker container
-                    docker.image('owasp/zap2docker-stable').inside('--network jenkins-sonar-network') {
+                    // Use the ZAP Docker container to run the security scan
+                    docker.image(ZAP_IMAGE).inside('--network jenkins-sonar-network') {
                         sh """
                         zap-baseline.py -t http://app:8084 -r zap_report.html
                         """
@@ -62,7 +74,7 @@ pipeline {
 
     post {
         always {
-            // Cleanup: Remove Docker containers after execution
+            // Cleanup: Stop and remove the app container after execution
             sh 'docker stop app || true && docker rm app || true'
             archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
         }
