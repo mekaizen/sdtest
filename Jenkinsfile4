@@ -1,15 +1,14 @@
 pipeline {
     agent {
         docker {
-            image 'docker:20.10' // Use a Docker image with Docker CLI
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Pass Docker socket
+            image 'maven:3.9.9-eclipse-temurin-21' // Use Maven image with Java and curl
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
         APP_IMAGE = 'doc18/sdlc-app'
-        MAVEN_IMAGE = 'maven:3.9.9-eclipse-temurin-21'
         ZAP_IMAGE = 'zaproxy/zap-stable'
     }
 
@@ -21,14 +20,11 @@ pipeline {
             }
         }
 
-        stage('Build with Maven in Docker') {
+        stage('Build with Maven') {
             steps {
-                // Run Maven build inside Docker
+                // Run Maven build inside the Docker container
                 sh """
-                    docker run --rm --network jenkins-sonar-network \
-                    -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
-                    -w /usr/src/app \
-                    ${MAVEN_IMAGE} mvn clean install
+                    mvn clean install
                 """
             }
         }
@@ -38,10 +34,7 @@ pipeline {
                 script {
                     // Run SonarQube analysis
                     sh """
-                        docker run --rm --network jenkins-sonar-network \
-                        -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
-                        -w /usr/src/app \
-                        ${MAVEN_IMAGE} mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+                        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
                         -Dsonar.projectKey=sdlc-test \
                         -Dsonar.sources=src/main/java \
                         -Dsonar.tests=src/test/java \
@@ -53,40 +46,24 @@ pipeline {
             }
         }
 
-
-
-        stage('Install curl') {
-            steps {
-                script {
-                    sh '''
-                        apt update
-                        apt install -y curl
-                    '''
-                }
-            }
-        }
-
         stage('Start Application') {
             steps {
                 script {
-                    // Start the application for testing locally on port 8081
+                    // Start the application for testing locally on port 8066
                     sh '''
-                                nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8066 > app.log 2>&1 &
-                            '''
-                    // Increase sleep time to ensure application fully starts
-                    sleep 10
+                        nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8066 > app.log 2>&1 &
+                    '''
+                    sleep 20 // Increase sleep time to ensure the application fully starts
                 }
             }
         }
-
-
 
         stage('Verify Application Running') {
             steps {
                 script {
-                    // Check if the application is running and accessible on port 8081
+                    // Check if the application is running and accessible on port 8066
                     sh '''
-                        /usr/bin/curl -I http://localhost:8066 || {
+                        curl -I http://localhost:8066 || {
                             echo "Application is not running!"
                             exit 1
                         }
@@ -94,7 +71,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Check Application Logs') {
             steps {
@@ -105,24 +81,10 @@ pipeline {
             }
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         stage('ZAP Security Scan') {
             steps {
                 script {
+                    // Run ZAP security scan
                     sh """
                         docker run --rm --network jenkins-sonar-network \
                         -v /home/cyber/Documents/practice/projects/sdtest:/zap/wrk \

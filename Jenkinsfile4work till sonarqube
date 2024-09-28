@@ -1,0 +1,142 @@
+pipeline {
+    agent {
+        docker {
+            image 'docker:20.10' // Use a Docker image with Docker CLI
+            args '-v /var/run/docker.sock:/var/run/docker.sock' // Pass Docker socket
+        }
+    }
+
+    environment {
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
+        APP_IMAGE = 'doc18/sdlc-app'
+        MAVEN_IMAGE = 'maven:3.9.9-eclipse-temurin-21'
+        ZAP_IMAGE = 'zaproxy/zap-stable'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
+                sh 'ls -la'
+            }
+        }
+
+        stage('Build with Maven in Docker') {
+            steps {
+                // Run Maven build inside Docker
+                sh """
+                    docker run --rm --network jenkins-sonar-network \
+                    -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
+                    -w /usr/src/app \
+                    ${MAVEN_IMAGE} mvn clean install
+                """
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Run SonarQube analysis
+                    sh """
+                        docker run --rm --network jenkins-sonar-network \
+                        -v /home/cyber/Documents/practice/projects/sdtest:/usr/src/app \
+                        -w /usr/src/app \
+                        ${MAVEN_IMAGE} mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+                        -Dsonar.projectKey=sdlc-test \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.tests=src/test/java \
+                        -Dsonar.exclusions=**/target/**,**/*.jar \
+                        -Dsonar.host.url=http://172.18.0.5:9000 \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    """
+                }
+            }
+        }
+
+
+
+        stage('Install curl') {
+            steps {
+                script {
+                    sh '''
+                        apt update
+                        apt install -y curl
+                    '''
+                }
+            }
+        }
+
+        stage('Start Application') {
+            steps {
+                script {
+                    // Start the application for testing locally on port 8081
+                    sh '''
+                                nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8066 > app.log 2>&1 &
+                            '''
+                    // Increase sleep time to ensure application fully starts
+                    sleep 10
+                }
+            }
+        }
+
+
+
+        stage('Verify Application Running') {
+            steps {
+                script {
+                    // Check if the application is running and accessible on port 8081
+                    sh '''
+                        /usr/bin/curl -I http://localhost:8066 || {
+                            echo "Application is not running!"
+                            exit 1
+                        }
+                    '''
+                }
+            }
+        }
+
+
+        stage('Check Application Logs') {
+            steps {
+                script {
+                    // Output the application logs
+                    sh 'cat app.log'
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        stage('ZAP Security Scan') {
+            steps {
+                script {
+                    sh """
+                        docker run --rm --network jenkins-sonar-network \
+                        -v /home/cyber/Documents/practice/projects/sdtest:/zap/wrk \
+                        ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker stop app || true && docker rm app || true'
+            archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
+        }
+    }
+}
