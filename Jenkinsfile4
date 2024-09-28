@@ -53,13 +53,71 @@ pipeline {
             }
         }
 
+
+
+
+
+        stage('Start Application') {
+            steps {
+                script {
+                    // Start the application for testing locally on port 8081
+                    sh '''
+                                nohup java -jar target/sdlc-test-0.0.1-SNAPSHOT.jar --server.port=8084 > app.log 2>&1 &
+                            '''
+                    // Increase sleep time to ensure application fully starts
+                    sleep 10
+                }
+            }
+        }
+
+
+
+        stage('Verify Application Running') {
+            steps {
+                script {
+                    // Check if the application is running and accessible on port 8081
+                    sh '''
+                        curl -I http://localhost:8084 || {
+                            echo "Application is not running!"
+                            exit 1
+                        }
+                    '''
+                }
+            }
+        }
+
+
+        stage('Check Application Logs') {
+            steps {
+                script {
+                    // Output the application logs
+                    sh 'cat app.log'
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         stage('ZAP Security Scan') {
             steps {
                 script {
                     sh """
                         docker run --rm --network jenkins-sonar-network \
                         -v /home/cyber/Documents/practice/projects/sdtest:/zap/wrk \
-                        ${ZAP_IMAGE} zap-baseline.py -t http://172.18.0.4:8084 -r zap_report.html
+                        ${ZAP_IMAGE} zap-baseline.py -t http://app:8084 -r zap_report.html
                     """
                 }
             }
