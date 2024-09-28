@@ -13,6 +13,8 @@ pipeline {
             steps {
                 // Clone the GitHub repository
                 git branch: 'main', url: 'https://github.com/mekaizen/sdtest.git'
+                sh 'ls -la /var/jenkins_home/workspace/sdlc-test1'
+
             }
         }
 
@@ -33,6 +35,9 @@ pipeline {
         stage('Run Maven Build') {
             steps {
                 script {
+                    // Verify that the POM file exists in the directory
+                    sh 'ls -la /var/jenkins_home/workspace/sdlc-test1'
+
                     // Use Maven Docker image to build the project and run tests
                     sh 'docker run --rm --network jenkins-sonar-network -v /var/jenkins_home/workspace/sdlc-test1:/usr/src/app -w /usr/src/app ${MAVEN_IMAGE} mvn clean install'
                 }
